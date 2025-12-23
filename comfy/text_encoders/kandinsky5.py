@@ -21,6 +21,11 @@ class Kandinsky5TokenizerImage(Kandinsky5Tokenizer):
         super().__init__(embedding_directory=embedding_directory, tokenizer_data=tokenizer_data)
         self.llama_template = "<|im_start|>system\nYou are a promt engineer. Describe the image by detailing the color, shape, size, texture, quantity, text, spatial relationships of the objects and background:<|im_end|>\n<|im_start|>user\n{}<|im_end|>"
 
+class Kandinsky5TokenizerI2I(Kandinsky5Tokenizer):
+    def __init__(self, embedding_directory=None, tokenizer_data={}):
+        super().__init__(embedding_directory=embedding_directory, tokenizer_data=tokenizer_data)
+        self.llama_template = "<|im_start|>system\nYou are a promt engineer. Based on the provided source image (first image) and target image (second image), create an interesting text prompt that can be used together with the source image to create the target image:<|im_end|>\n<|im_start|>user\n{}<|im_end|>"
+
 
 class Qwen25_7BVLIModel(sd1_clip.SDClipModel):
     def __init__(self, device="cpu", layer="hidden", layer_idx=-1, dtype=None, attention_mask=True, model_options={}):

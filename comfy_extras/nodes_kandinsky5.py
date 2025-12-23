@@ -1,6 +1,7 @@
 import nodes
 import node_helpers
 import torch
+import torchvision.transforms.functional as F
 import comfy.model_management
 import comfy.utils
 
@@ -54,6 +55,51 @@ class Kandinsky5ImageToVideo(io.ComfyNode):
         out_latent["samples"] = latent
         return io.NodeOutput(positive, negative, out_latent, cond_latent_out)
 
+
+
+class Kandinsky5ImageToImage(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="Kandinsky5ImageToImage",
+            category="image",
+            inputs=[
+                io.Conditioning.Input("positive"),
+                io.Conditioning.Input("negative"),
+                io.Vae.Input("vae"),
+                io.Int.Input("batch_size", default=1, min=1, max=4096),
+                io.Image.Input("start_image"),
+            ],
+            outputs=[
+                io.Conditioning.Output(display_name="positive"),
+                io.Conditioning.Output(display_name="negative"),
+                io.Latent.Output(display_name="latent", tooltip="Empty video latent"),
+            ],
+        )
+
+    @classmethod
+    def execute(cls, positive, negative, vae, batch_size, start_image) -> io.NodeOutput:
+        height, width = start_image.shape[1:-1]
+        
+        available_res = [(1024, 1024), (640, 1408), (1408, 640), (768, 1280), (1280, 768), (896, 1152), (1152, 896)]
+        nearest_index = torch.argmin(torch.Tensor([abs((w / h) - (width / height))for (w, h) in available_res]))
+        nw, nh = available_res[nearest_index]
+        scale_factor = min(height / nh, width / nw)
+        start_image = start_image.permute(0,3,1,2)
+        start_image = F.resize(start_image, (int(height / scale_factor), int(width / scale_factor)))
+        start_image = F.crop(
+            start_image,
+            (height - nh) // 2,
+            (width - nw) // 2,
+            nh,
+            nw,
+        )
+        print(start_image.shape)
+        start_image = start_image.permute(0,2,3,1)
+        encoded = vae.encode(start_image[:, :, :, :3])
+        out_latent = {"samples": encoded.repeat(batch_size, 1, 1, 1)}
+        return io.NodeOutput(positive, negative, out_latent)
+    
 
 def adaptive_mean_std_normalization(source, reference, clump_mean_low=0.3, clump_mean_high=0.35, clump_std_low=0.35, clump_std_high=0.5):
     source_mean = source.mean(dim=(1, 3, 4), keepdim=True)  # mean over C, H, W
@@ -131,6 +177,7 @@ class Kandinsky5Extension(ComfyExtension):
     async def get_node_list(self) -> list[type[io.ComfyNode]]:
         return [
             Kandinsky5ImageToVideo,
+            Kandinsky5ImageToImage,
             NormalizeVideoLatentStart,
             CLIPTextEncodeKandinsky5,
         ]

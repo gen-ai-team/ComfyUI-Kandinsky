@@ -992,6 +992,7 @@ class CLIPType(Enum):
     OVIS = 21
     KANDINSKY5 = 22
     KANDINSKY5_IMAGE = 23
+    KANDINSKY5_I2I = 24
 
 
 def load_clip(ckpt_paths, embedding_directory=None, clip_type=CLIPType.STABLE_DIFFUSION, model_options={}):
@@ -1246,6 +1247,9 @@ def load_text_encoder_state_dicts(state_dicts=[], embedding_directory=None, clip
         elif clip_type == CLIPType.KANDINSKY5_IMAGE:
             clip_target.clip = comfy.text_encoders.kandinsky5.te(**llama_detect(clip_data))
             clip_target.tokenizer = comfy.text_encoders.kandinsky5.Kandinsky5TokenizerImage
+        elif clip_type == CLIPType.KANDINSKY5_I2I:
+            clip_target.clip = comfy.text_encoders.kandinsky5.te(**llama_detect(clip_data))
+            clip_target.tokenizer = comfy.text_encoders.kandinsky5.Kandinsky5TokenizerI2I
         else:
             clip_target.clip = sdxl_clip.SDXLClipModel
             clip_target.tokenizer = sdxl_clip.SDXLTokenizer
