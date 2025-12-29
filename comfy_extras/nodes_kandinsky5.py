@@ -171,6 +171,26 @@ class CLIPTextEncodeKandinsky5(io.ComfyNode):
 
         return io.NodeOutput(clip.encode_from_tokens_scheduled(tokens))
 
+class TextEncodeQwenKandinskyI2I(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="TextEncodeQwenKandinskyI2I",
+            category="advanced/conditioning",
+            inputs=[
+                io.Clip.Input("clip"),
+                io.String.Input("prompt", multiline=True, dynamic_prompts=True),
+                io.Image.Input("image", optional=True),
+            ],
+            outputs=[io.Conditioning.Output()],
+        )
+
+    @classmethod
+    def execute(cls, clip, prompt, image=None) -> io.NodeOutput:
+        images = [image,] if image is not None else []
+        tokens = clip.tokenize(prompt, images=images)
+        conditioning = clip.encode_from_tokens_scheduled(tokens)
+        return io.NodeOutput(conditioning)
 
 class Kandinsky5Extension(ComfyExtension):
     @override
@@ -180,6 +200,7 @@ class Kandinsky5Extension(ComfyExtension):
             Kandinsky5ImageToImage,
             NormalizeVideoLatentStart,
             CLIPTextEncodeKandinsky5,
+            TextEncodeQwenKandinskyI2I,
         ]
 
 async def comfy_entrypoint() -> Kandinsky5Extension:
