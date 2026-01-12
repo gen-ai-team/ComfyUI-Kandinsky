@@ -1535,7 +1535,7 @@ class Kandinsky5Image(Kandinsky5):
         hunyuan_detect = comfy.text_encoders.hunyuan_video.llama_detect(state_dict, "{}qwen25_7b.transformer.".format(pref))
         return supported_models_base.ClipTarget(comfy.text_encoders.kandinsky5.Kandinsky5TokenizerImage, comfy.text_encoders.kandinsky5.te(**hunyuan_detect))
 
-class Kandinsky5ImageToImage(supported_models_base.BASE):
+class Kandinsky5ImageToImage(Kandinsky5):
     unet_config = {
         "image_model": "kandinsky5",
         "model_dim": 2560,
@@ -1545,7 +1545,6 @@ class Kandinsky5ImageToImage(supported_models_base.BASE):
     sampling_settings = {
         "shift": 3.0,
     }
-
     latent_format = latent_formats.Flux
     memory_usage_factor = 1.25 #TODO
 
