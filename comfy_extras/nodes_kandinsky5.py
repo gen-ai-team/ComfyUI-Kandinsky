@@ -160,7 +160,12 @@ class CLIPTextEncodeKandinsky5(io.ComfyNode):
 
     @classmethod
     def execute(cls, clip, prompt, image=None) -> io.NodeOutput:
-        images = [image,] if image is not None else []
+        images = []
+        if image is not None:
+            image = image.permute(0,3,1,2)
+            height, width = image.shape[-2:]
+            image = F.resize(image, (int(height / 2), int(width / 2))).permute(0,2,3,1)
+            images.append(image)
         tokens = clip.tokenize(prompt, images=images)
         conditioning = clip.encode_from_tokens_scheduled(tokens)
         return io.NodeOutput(conditioning)
