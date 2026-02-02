@@ -1,17 +1,48 @@
 import math
+import time
 from functools import partial
 
 from scipy import integrate
 import torch
 from torch import nn
 import torchsde
-from tqdm.auto import trange, tqdm
+from tqdm.auto import trange as trange_, tqdm
 
 from . import utils
 from . import deis
 from . import sa_solver
 import comfy.model_patcher
 import comfy.model_sampling
+
+import comfy.memory_management
+
+
+def trange(*args, **kwargs):
+    if comfy.memory_management.aimdo_allocator is None:
+        return trange_(*args, **kwargs)
+
+    pbar = trange_(*args, **kwargs, smoothing=1.0)
+    pbar._i = 0
+    pbar.set_postfix_str("  Model Initializing ...  ")
+
+    _update = pbar.update
+
+    def warmup_update(n=1):
+        pbar._i += 1
+        if pbar._i == 1:
+            pbar.i1_time = time.time()
+            pbar.set_postfix_str(" Model Initialization complete!  ")
+        elif pbar._i == 2:
+            #bring forward the effective start time based the the diff between first and second iteration
+            #to attempt to remove load overhead from the final step rate estimate.
+            pbar.start_t = pbar.i1_time - (time.time() - pbar.i1_time)
+            pbar.set_postfix_str("")
+
+        _update(n)
+
+    pbar.update = warmup_update
+    return pbar
+
 
 def append_zero(x):
     return torch.cat([x, x.new_zeros([1])])
@@ -74,6 +105,9 @@ def get_ancestral_step(sigma_from, sigma_to, eta=1.):
 
 def default_noise_sampler(x, seed=None):
     if seed is not None:
+        if x.device == torch.device("cpu"):
+            seed += 1
+
         generator = torch.Generator(device=x.device)
         generator.manual_seed(seed)
     else:
@@ -1776,7 +1810,7 @@ def sample_sa_solver(model, x, sigmas, extra_args=None, callback=None, disable=F
         # Predictor
         if sigmas[i + 1] == 0:
             # Denoising step
-            x = denoised
+            x_pred = denoised
         else:
             tau_t = tau_func(sigmas[i + 1])
             curr_lambdas = lambdas[i - predictor_order_used + 1:i + 1]
@@ -1797,7 +1831,7 @@ def sample_sa_solver(model, x, sigmas, extra_args=None, callback=None, disable=F
             if tau_t > 0 and s_noise > 0:
                 noise = noise_sampler(sigmas[i], sigmas[i + 1]) * sigmas[i + 1] * (-2 * tau_t ** 2 * h).expm1().neg().sqrt() * s_noise
                 x_pred = x_pred + noise
-    return x
+    return x_pred
 
 
 @torch.no_grad()
