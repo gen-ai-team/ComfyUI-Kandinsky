@@ -1791,17 +1791,9 @@ class Kandinsky5Image(Kandinsky5):
     def concat_cond(self, **kwargs):
         return None
     
-class Kandinsky5ImageToImage(BaseModel):
+class Kandinsky5ImageToImage(Kandinsky5):
     def __init__(self, model_config, model_type=ModelType.FLOW, device=None):
-        super().__init__(
-            model_config,
-            model_type,
-            device=device,
-            unet_model=comfy.ldm.kandinsky5.model.Kandinsky5
-        )
-
-    def encode_adm(self, **kwargs):
-        return kwargs["pooled_output"]
+        super().__init__(model_config, model_type, device=device)
 
     def concat_cond(self, **kwargs):
         noise  = kwargs["noise"]

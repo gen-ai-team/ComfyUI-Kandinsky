@@ -62,15 +62,15 @@ class Kandinsky5ImageToImage(io.ComfyNode):
     def define_schema(cls):
         return io.Schema(
             node_id="Kandinsky5ImageToImage",
-            category="image",
+            category="advanced/conditioning/kandinsky5",
             inputs=[
                 io.Vae.Input("vae"),
                 io.Int.Input("batch_size", default=1, min=1, max=4096),
                 io.Image.Input("start_image"),
             ],
             outputs=[
-                io.Latent.Output(display_name="latent", tooltip="Empty video latent"),
-                io.Image.Output("resized_image"),
+                io.Latent.Output(display_name="latent", tooltip="Latent of resized source image"),
+                io.Image.Output("resized_image", tooltip="Resized source image"),
             ],
         )
 
@@ -78,8 +78,8 @@ class Kandinsky5ImageToImage(io.ComfyNode):
     def execute(cls, vae, batch_size, start_image) -> io.NodeOutput:
         height, width = start_image.shape[1:-1]
         available_res = [(1024, 1024), (640, 1408), (1408, 640), (768, 1280), (1280, 768), (896, 1152), (1152, 896)]
-        nearest_index = torch.argmin(torch.Tensor([abs((w / h) - (width / height))for (w, h) in available_res]))
-        nw, nh = available_res[nearest_index]
+        nearest_index = torch.argmin(torch.Tensor([abs((h / w) - (height / width))for (h, w) in available_res]))
+        nh, nw = available_res[nearest_index]
         scale_factor = min(height / nh, width / nw)
         start_image = start_image.permute(0,3,1,2)
         start_image = F.resize(start_image, (int(height / scale_factor), int(width / scale_factor)))
@@ -150,7 +150,7 @@ class CLIPTextEncodeKandinsky5(io.ComfyNode):
         return io.Schema(
             node_id="CLIPTextEncodeKandinsky5",
             search_aliases=["kandinsky prompt"],
-            category="advanced/conditioning",
+            category="advanced/conditioning/kandinsky5",
             inputs=[
                 io.Clip.Input("clip"),
                 io.String.Input("prompt", multiline=True, dynamic_prompts=True),
