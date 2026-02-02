@@ -96,7 +96,7 @@ class Kandinsky5ImageToImage(io.ComfyNode):
         encoded = vae.encode(start_image[:, :, :, :3])
         out_latent = {"samples": encoded.repeat(batch_size, 1, 1, 1)}
         return io.NodeOutput(out_latent, start_image)
-    
+
 
 def adaptive_mean_std_normalization(source, reference, clump_mean_low=0.3, clump_mean_high=0.35, clump_std_low=0.35, clump_std_high=0.5):
     source_mean = source.mean(dim=(1, 3, 4), keepdim=True)  # mean over C, H, W

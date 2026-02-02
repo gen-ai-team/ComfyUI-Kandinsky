@@ -1790,7 +1790,7 @@ class Kandinsky5Image(Kandinsky5):
 
     def concat_cond(self, **kwargs):
         return None
-    
+
 class Kandinsky5ImageToImage(Kandinsky5):
     def __init__(self, model_config, model_type=ModelType.FLOW, device=None):
         super().__init__(model_config, model_type, device=device)
